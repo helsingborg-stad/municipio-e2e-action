@@ -11,40 +11,36 @@ jobs:
   install-dependencies:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    outputs:
+      cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}  # Pass the cache-hit status to other jobs
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Cache Node.js modules and Playwright
+        id: cache-deps  # Define an ID for this step to reference the cache-hit status later
         uses: actions/cache@v4
         with:
           path: |
-            ~/.npm
             node_modules
             ~/.cache/ms-playwright
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-deps
           restore-keys: |
             ${{ runner.os }}-node-
-            ${{ runner.os }}-playwright-
 
       - name: Set up Node.js
+        if: steps.cache-deps.outputs.cache-hit != 'true'  # Skip if cache is hit
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
 
       - name: Install dependencies and Playwright
+        if: steps.cache-deps.outputs.cache-hit != 'true'  # Only run if cache is not hit
         run: |
           npm ci
           npx playwright install --with-deps chromium
         shell: bash
-
-      - name: Upload node_modules and Playwright cache
-        uses: actions/upload-artifact@v4
-        with:
-          name: node-modules-and-playwright
-          path: |
-            node_modules
-            ~/.cache/ms-playwright
 
   playwright-tests:
     needs: install-dependencies
@@ -60,11 +56,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download node_modules and Playwright cache
-        uses: actions/download-artifact@v4
+      - name: Restore Node.js modules and Playwright cache
+        uses: actions/cache@v4
         with:
-          name: node-modules-and-playwright
-          path: .
+          path: |
+            node_modules
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-deps
+          restore-keys: |
+            ${{ runner.os }}-node-
 
       - name: Build test fixtures
         env:
