@@ -1,0 +1,1 @@
+For MacOS install XQuartz, For windows install VcXsrv
