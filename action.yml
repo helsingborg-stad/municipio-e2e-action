@@ -21,6 +21,10 @@ runs:
       with:
         node-version: ${{ inputs.node_version }}
 
+    - name: Install playwright
+      run: npx playwright install --with-deps
+      shell: bash
+
     - name: Install dependencies
       run: npm ci
       shell: bash
