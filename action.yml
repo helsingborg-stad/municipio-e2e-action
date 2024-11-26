@@ -23,11 +23,14 @@ runs:
 
     - name: Install dependencies
       run: npm ci
+      shell: bash
 
     - name: Build test fixtures
       env:
         SITEMAP_URLS: ${{ inputs.sitemap_urls }}
       run: npm run test:setup-data
+      shell: bash
 
     - name: Run Playwright tests
       run: npx playwright test --reporter=list
+      shell: bash
