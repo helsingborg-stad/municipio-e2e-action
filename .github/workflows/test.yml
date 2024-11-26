@@ -22,15 +22,20 @@ jobs:
         run: npm ci
         shell: bash
 
-      - name: Install playwright
-        run: npx playwright install --with-deps
-        shell: bash
+      # - name: Install playwright
+      #   run: npx playwright install --with-deps
+      #   shell: bash
       
       - name: Build test fixtures
         env:
           SITEMAP_URLS: ${{ secrets.SITEMAP_URLS }}
         run: npm run test:setup-data
         shell: bash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sitemap-urls
+          path: fixtures/sitemap-urls.txt
 
   playwright-tests:
     needs: [fixture-setup]
@@ -51,13 +56,18 @@ jobs:
       #   with:
       #     node-version: '22'
       
-      # - name: Install playwright
-      #   run: npx playwright install --with-deps
-      #   shell: bash
+      - name: Install playwright
+        run: npx playwright install --with-deps chromium
+        shell: bash
       
       # - name: Install dependencies
       #   run: npm ci
       #   shell: bash
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sitemap-urls
+          path: fixtures/sitemap-urls.txt
       
       - name: Run Playwright tests
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --reporter=list
