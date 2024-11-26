@@ -14,7 +14,7 @@ function getSitemapUrlsFromEnv(): URL[] {
 async function main() {
     const logger = new Logger();
     const path = await import('path');
-    const filePath = path.resolve(__dirname, 'urls.txt');
+    const filePath = path.resolve(__dirname, '../fixtures/sitemap-urls.txt');
     const urls: URL[] = [];
     let sitemapUrls: URL[] = [];
 

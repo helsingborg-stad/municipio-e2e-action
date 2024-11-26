@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
-const urls: string[] = fs.readFileSync(path.resolve(__dirname, '../urls.txt'), 'utf-8').split('\n');
+const urls: string[] = fs.readFileSync(path.resolve(__dirname, '../fixtures/sitemap-urls.txt'), 'utf-8').split('\n');
 
 urls.forEach((url: string) => {
   test(`Response code was 200: ${url}`, async ({ page }) => {
