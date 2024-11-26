@@ -6,22 +6,17 @@ on:
   pull_request:
     branches:
       - main
-jobs:
-  playwright-tests:
-    timeout-minutes: 60
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shardIndex: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-        shardTotal: [16]
 
+jobs:
+  install-dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Cache Node.js modules and Playwright
-        uses: actions/cache@v4
+        uses: actions/cache@v2
         with:
           path: |
             ~/.npm
@@ -39,10 +34,37 @@ jobs:
 
       - name: Install dependencies and Playwright
         run: |
-          npm ci &
-          npx playwright install --with-deps chromium &
-          wait
+          npm ci
+          npx playwright install --with-deps chromium
         shell: bash
+
+      - name: Upload node_modules and Playwright cache
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-modules-and-playwright
+          path: |
+            node_modules
+            ~/.cache/ms-playwright
+
+  playwright-tests:
+    needs: install-dependencies
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        shardTotal: [16]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download node_modules and Playwright cache
+        uses: actions/download-artifact@v4
+        with:
+          name: node-modules-and-playwright
+          path: .
 
       - name: Build test fixtures
         env:
@@ -73,12 +95,6 @@ jobs:
         with:
           node-version: 'lts/*'
 
-      - name: Install dependencies and Playwright
-        run: |
-          npm ci
-          npx playwright install
-        shell: bash
-
       - name: Download blob reports from GitHub Actions Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -95,3 +111,7 @@ jobs:
           name: html-report--attempt-${{ github.run_attempt }}
           path: playwright-report
           retention-days: 1
+
+      - name: Clean up downloaded blob reports
+        run: rm -rf all-blob-reports blob-report*
+        shell: bash
