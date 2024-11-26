@@ -1,16 +1,15 @@
 name: Run Municipio E2E Tests
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  workflow_call:
+    inputs:
+      sitemap_urls:
+        required: true
+        type: string
 
 jobs:
   install-dependencies:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     outputs:
       cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}
 
@@ -61,7 +60,7 @@ jobs:
 
       - name: Build test fixtures
         env:
-          SITEMAP_URLS: ${{ secrets.SITEMAP_URLS }}
+          SITEMAP_URLS: ${{ inputs.sitemap_urls }}
         run: npm run test:setup-data
         shell: bash
 
