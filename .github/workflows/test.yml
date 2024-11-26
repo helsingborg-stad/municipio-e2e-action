@@ -24,4 +24,4 @@ jobs:
       - name: Run E2E tests
         uses: helsingborg-stad/municipio-e2e-action@develop
         with:
-          sitemap-urls: ${{ secrets.SITEMAP_URLS }}
+          sitemap_urls: ${{ secrets.SITEMAP_URLS }}
