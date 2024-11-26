@@ -4,8 +4,7 @@ import path from 'path';
 
 const urls: string[] = fs.readFileSync(path.resolve(__dirname, '../fixtures/sitemap-urls.txt'), 'utf-8').split('\n');
 
-// Get the 10 first urls
-urls.splice(10);
+urls.splice(100);
 
 urls.forEach((url: string) => {
   test(`Page is OK: ${url}`, async ({ page }) => {
