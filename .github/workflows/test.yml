@@ -35,12 +35,16 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: sitemap-urls
-          path: fixtures/sitemap-urls.txt
+          path: ${{ github.workspace }}/fixtures/sitemap-urls.txt
 
   playwright-tests:
     needs: [fixture-setup]
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -67,7 +71,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: sitemap-urls
-          path: fixtures/sitemap-urls.txt
+          path: ${{ github.workspace }}/fixtures/sitemap-urls.txt
       
       - name: Run Playwright tests
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --reporter=list
