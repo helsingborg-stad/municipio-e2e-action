@@ -6,6 +6,14 @@ on:
   pull_request:
     branches:
       - main
+  # manual trigger button
+  workflow_dispatch:
+    inputs:
+      sitemap-urls:
+        description: 'Sitemap URLs for the test setup'
+        required: true
+        default: 'https://example.com/sitemap.xml'
+
 
 jobs:
   test:
@@ -13,20 +21,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
+      - name: Run E2E tests
+        uses: helsingborg-stad/municipio-e2e-action@develop
         with:
-          node-version: '22'
-
-      - name: Install dependencies
-        run: npm install
-
-
-      - name: Build test fixtures
-        env:
-          SITEMAP_URLS: ${{ secrets.SITEMAP_URLS }}
-        run: npm run test:setup-data
-
-      - name: Run Playwright tests
-        run: npx playwright test
+          sitemap-urls: ${{ secrets.SITEMAP_URLS }}

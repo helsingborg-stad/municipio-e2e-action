@@ -22,7 +22,7 @@ runs:
         node-version: ${{ inputs.node_version }}
 
     - name: Install dependencies
-      run: npm install
+      run: npm ci
 
     - name: Build test fixtures
       env:
@@ -30,4 +30,4 @@ runs:
       run: npm run test:setup-data
 
     - name: Run Playwright tests
-      run: npx playwright test
+      run: npx playwright test --reporter=list
