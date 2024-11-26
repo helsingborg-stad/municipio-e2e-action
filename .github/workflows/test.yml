@@ -15,30 +15,30 @@ jobs:
       matrix:
         shardIndex: [1, 2, 3, 4]
         shardTotal: [4]
-        
-    - name: Checkout repository
-      uses: actions/checkout@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '22'
-
-    - name: Install playwright
-      run: npx playwright install --with-deps
-      shell: bash
-
-    - name: Install dependencies
-      run: npm ci
-      shell: bash
-
-    - name: Build test fixtures
-      env:
-        SITEMAP_URLS: ${{ secrets.SITEMAP_URLS }}
-      run: npm run test:setup-data
-      shell: bash
-
-    - name: Run Playwright tests
-      run: npx playwright test --reporter=list
-      run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --reporter=list
-      shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '22'
+      
+      - name: Install playwright
+        run: npx playwright install --with-deps
+        shell: bash
+      
+      - name: Install dependencies
+        run: npm ci
+        shell: bash
+      
+      - name: Build test fixtures
+        env:
+          SITEMAP_URLS: ${{ secrets.SITEMAP_URLS }}
+        run: npm run test:setup-data
+        shell: bash
+      
+      - name: Run Playwright tests
+        run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --reporter=list
+        shell: bash
