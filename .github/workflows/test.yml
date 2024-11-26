@@ -12,14 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
-      cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}  # Pass the cache-hit status to other jobs
+      cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Cache Node.js modules and Playwright
-        id: cache-deps  # Define an ID for this step to reference the cache-hit status later
+        id: cache-deps
         uses: actions/cache@v4
         with:
           path: |
@@ -30,20 +30,49 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Set up Node.js
-        if: steps.cache-deps.outputs.cache-hit != 'true'  # Skip if cache is hit
+        if: steps.cache-deps.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
 
       - name: Install dependencies and Playwright
-        if: steps.cache-deps.outputs.cache-hit != 'true'  # Only run if cache is not hit
+        if: steps.cache-deps.outputs.cache-hit != 'true'
         run: |
           npm ci
           npx playwright install --with-deps chromium
         shell: bash
 
+  build-test-fixtures:
+    needs: install-dependencies  # Ensure this runs after install-dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Restore Node.js modules and Playwright cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-deps
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Build test fixtures
+        env:
+          SITEMAP_URLS: ${{ secrets.SITEMAP_URLS }}
+        run: npm run test:setup-data
+        shell: bash
+
+      - name: Cache sitemap-urls.txt
+        uses: actions/cache@v4
+        with:
+          path: fixtures/sitemap-urls.txt
+          key: ${{ runner.os }}-sitemap-urls-${{ hashFiles('**/fixtures/sitemap-urls.txt') }}
+
   playwright-tests:
-    needs: install-dependencies
+    needs: build-test-fixtures  # Ensure this runs after build-test-fixtures
     timeout-minutes: 60
     runs-on: ubuntu-latest
     strategy:
@@ -66,11 +95,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Build test fixtures
-        env:
-          SITEMAP_URLS: ${{ secrets.SITEMAP_URLS }}
-        run: npm run test:setup-data
-        shell: bash
+      - name: Restore sitemap-urls.txt cache
+        uses: actions/cache@v4
+        with:
+          path: fixtures/sitemap-urls.txt
+          key: ${{ runner.os }}-sitemap-urls-${{ hashFiles('**/fixtures/sitemap-urls.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-sitemap-urls-
 
       - name: Run Playwright tests
         run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
