@@ -1,0 +1,31 @@
+name: Run Municipio E2E Tests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build test fixtures
+        env:
+          SITEMAP_URLS: ${{ secrets.SITEMAP_URLS }}
+        run: npm run test:setup-data
+
+      - name: Run Playwright tests
+        run: npx playwright test
