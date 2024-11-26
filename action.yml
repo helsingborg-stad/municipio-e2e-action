@@ -1,16 +1,33 @@
-name: Municipio E2E
+name: 'Municipio E2E Tests'
+description: 'Run Playwright E2E tests on a project'
+author: 'Thor Brink'
 inputs:
-  sitemap-urls: 
-    description: Sitemap URLs
+  sitemap_urls:
+    description: 'Sitemap URLs for the test setup'
     required: true
-  timeout: 
-    description: Timeout in minutes
-    default: 60
+  node_version:
+    description: 'Version of Node.js to use'
     required: false
+    default: '22'
+
 runs:
-  using: docker
-  image: mcr.microsoft.com/playwright:v1.49.0-noble
-  args:
-    - npx
-    - playwright
-    - test
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ inputs.node_version }}
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build test fixtures
+      env:
+        SITEMAP_URLS: ${{ inputs.sitemap_urls }}
+      run: npm run test:setup-data
+
+    - name: Run Playwright tests
+      run: npx playwright test
