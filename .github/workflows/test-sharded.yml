@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run Municipio E2E Tests
-        uses: helsingborg-stad/municipio-e2e-action@dev
+        uses: helsingborg-stad/municipio-e2e-action@v1
         with:
           sitemap-urls: ${{ vars.SITEMAP_URLS }}
           shard: ${{ matrix.shard }}
