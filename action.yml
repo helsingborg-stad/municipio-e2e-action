@@ -1,0 +1,58 @@
+name: 'Run Municipio E2E Tests'
+description: 'A custom action to run Municipio E2E tests'
+inputs:
+  sitemap-urls:
+    description: 'A space-separated list of URLs to test'
+    required: true
+  shard:
+    description: 'The shard index to run'
+    default: 'false'
+    required: false
+  total-shards:
+    description: 'The total number of shards'
+    default: 'false'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Cache Node.js modules and Playwright
+      id: cache-deps
+      uses: actions/cache@v4
+      with:
+        path: |
+          node_modules
+          ~/.cache/ms-playwright
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-deps
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    - name: Set up Node.js
+      if: steps.cache-deps.outputs.cache-hit != 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Install dependencies and Playwright
+      if: steps.cache-deps.outputs.cache-hit != 'true'
+      run: |
+        npm ci
+        npx playwright install --with-deps chromium
+      shell: bash
+
+    - name: Build test fixtures
+      env:
+        SITEMAP_URLS: ${{ inputs.sitemap-urls }}
+      run: npm run test:setup-data
+      shell: bash
+
+    - name: Run Playwright tests
+      run: |
+        if [ "${{ inputs.shard }}" != "false" ] && [ "${{ inputs.total-shards }}" != "false" ]; then
+          npx playwright test --shard=${{ inputs.shard }}/${{ inputs.total-shards }}
+        else
+          npx playwright test
+        fi
+      shell: bash
