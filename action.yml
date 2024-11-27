@@ -18,7 +18,7 @@ runs:
     - name: Checkout this repository
       uses: actions/checkout@v4
       with:
-        repository: helsingborg-stad/municipio-e2e
+        repository: helsingborg-stad/municipio-e2e-action
         token: ${{ github.token }}
         ref: 'v1'
 
