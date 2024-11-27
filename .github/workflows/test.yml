@@ -8,8 +8,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
     steps:
       - name: Run Municipio E2E Tests
         uses: helsingborg-stad/municipio-e2e-action@dev
         with:
-          sitemap-urls: 'https://visithelsingborg.hbgtest.se/sitemap.xml?pw_test='
+          sitemap-urls: 'https://raw.githubusercontent.com/helsingborg-stad/municipio-e2e-action/refs/heads/dev/fixtures/sitemap.xml'
