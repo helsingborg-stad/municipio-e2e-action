@@ -23,7 +23,7 @@ const config: PlaywrightTestConfig = {
   workers: undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   // reporter: process.env.CI ? 'html' : 'line',
-  reporter: process.env.CI ? 'blob' : 'list',
+  reporter: 'list',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
