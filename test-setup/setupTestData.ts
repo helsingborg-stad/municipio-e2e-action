@@ -27,7 +27,15 @@ async function main() {
 
     for (const sitemapUrl of sitemapUrls) {
         logger.logSuccess(`Getting urls from ${sitemapUrl.href}`);
-        const innerUrls = await getUrlsFromSitemap(sitemapUrl.href)
+        let innerUrls: URL[] = [];
+
+        try {
+            innerUrls = await getUrlsFromSitemap(sitemapUrl.href)
+        } catch (error) {
+            logger.logError(error.message);
+            process.exit(1);
+        }
+
         logger.logSuccess(`Got ${innerUrls.length} urls from ${sitemapUrl.href}`);
 
         for (const url of innerUrls) {

@@ -1,6 +1,11 @@
 export async function getUrlsFromSitemap(url: string): Promise<URL[]> {
     const fetch = (await import('node-fetch')).default;
     const response = await fetch(url);
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch sitemap: ${response.statusText}`);
+    }
+
     const data = await response.text();
     const urlStrings = data.match(/<loc>(.*?)<\/loc>/g)?.map((loc) => loc.replace(/<\/?loc>/g, ''));
 
