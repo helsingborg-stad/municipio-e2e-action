@@ -4,5 +4,4 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /urls.txt
-/fixtures/*
-!fixtures/.gitkeep
+fixtures/sitemap-urls.txt
