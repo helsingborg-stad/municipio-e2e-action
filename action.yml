@@ -19,7 +19,7 @@ runs:
       uses: actions/checkout@v4
       with:
         repository: helsingborg-stad/municipio-e2e
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ github.token }}
 
     - name: Cache Node.js modules and Playwright
       id: cache-deps
