@@ -20,7 +20,7 @@ runs:
       with:
         repository: helsingborg-stad/municipio-e2e
         token: ${{ github.token }}
-        ref: 'main'
+        ref: 'v1'
 
     - name: Cache Node.js modules and Playwright
       id: cache-deps
