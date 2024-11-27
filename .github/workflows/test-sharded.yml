@@ -1,4 +1,4 @@
-name: Run Municipio E2E Tests
+name: Run Municipio E2E Tests sharded
 on:
   workflow_dispatch:
   pull_request:
@@ -17,3 +17,5 @@ jobs:
         uses: helsingborg-stad/municipio-e2e-action@dev
         with:
           sitemap-urls: 'https://visithelsingborg.hbgtest.se/sitemap.xml?pw_test='
+          shard: ${{ matrix.shard }}
+          total-shards: ${{ matrix.total-shards }}
