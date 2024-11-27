@@ -1,143 +1,21 @@
 name: Run Municipio E2E Tests
 on:
-  workflow_call:
-    inputs:
-      sitemap_urls:
-        required: true
-        type: string
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  install-dependencies:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    outputs:
-      cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Cache Node.js modules and Playwright
-        id: cache-deps
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            ~/.cache/ms-playwright
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-deps
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Set up Node.js
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-
-      - name: Install dependencies and Playwright
-        if: steps.cache-deps.outputs.cache-hit != 'true'
-        run: |
-          npm i
-          npx playwright install --with-deps chromium
-        shell: bash
-
-  build-test-fixtures:
-    needs: install-dependencies  # Ensure this runs after install-dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Restore Node.js modules and Playwright cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            ~/.cache/ms-playwright
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-deps
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Build test fixtures
-        env:
-          SITEMAP_URLS: ${{ inputs.sitemap_urls }}
-        run: npm run test:setup-data
-        shell: bash
-
-      - name: Cache sitemap-urls.txt
-        uses: actions/cache@v4
-        with:
-          path: fixtures/sitemap-urls.txt
-          key: ${{ runner.os }}-sitemap-urls-${{ hashFiles('**/fixtures/sitemap-urls.txt') }}
-
-  playwright-tests:
-    needs: build-test-fixtures  # Ensure this runs after build-test-fixtures
-    timeout-minutes: 60
-    runs-on: ubuntu-latest
+  test:
     strategy:
-      fail-fast: false
       matrix:
-        shardIndex: [1, 2, 3, 4, 5, 6, 7, 8]
-        shardTotal: [8]
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Restore Node.js modules and Playwright cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            ~/.cache/ms-playwright
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-deps
-          restore-keys: |
-            ${{ runner.os }}-node-
-
-      - name: Restore sitemap-urls.txt cache
-        uses: actions/cache@v4
-        with:
-          path: fixtures/sitemap-urls.txt
-          key: ${{ runner.os }}-sitemap-urls-${{ hashFiles('**/fixtures/sitemap-urls.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-sitemap-urls-
-
-      - name: Run Playwright tests
-        run: npx playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
-        shell: bash
-
-      - name: Upload blob report to GitHub Actions Artifacts
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: blob-report-${{ matrix.shardIndex }}
-          path: blob-report
-          retention-days: 1
-
-  merge-reports:
-    if: ${{ !cancelled() }}
-    needs: [playwright-tests]
+        shard: [1, 2, 3, 4]
+        total-shards: [4]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - name: Run Municipio E2E Tests
+        uses: helsingborg-stad/municipio-e2e-action@dev
         with:
-          node-version: 'lts/*'
-
-      - name: Download blob reports from GitHub Actions Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: all-blob-reports
-          pattern: blob-report-*
-          merge-multiple: true
-
-      - name: Merge into HTML Report
-        run: npx playwright merge-reports --reporter html ./all-blob-reports
-
-      - name: Upload HTML report
-        uses: actions/upload-artifact@v4
-        with:
-          name: html-report--attempt-${{ github.run_attempt }}
-          path: playwright-report
-          retention-days: 1
+          sitemap-urls: 'https://visithelsingborg.hbgtest.se/sitemap.xml?pw_test='
+          shard: ${{ matrix.shard }}
+          total-shards: ${{ matrix.total-shards }}
