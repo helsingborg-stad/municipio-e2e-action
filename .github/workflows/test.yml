@@ -7,10 +7,6 @@ on:
 
 jobs:
   test:
-    strategy:
-      matrix:
-        shard: [1, 2, 3, 4]
-        total-shards: [4]
     runs-on: ubuntu-latest
     steps:
       - name: Run Municipio E2E Tests
