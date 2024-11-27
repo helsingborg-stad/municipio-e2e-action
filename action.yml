@@ -56,10 +56,3 @@ runs:
           npx playwright test
         fi
       shell: bash
-
-    # - name: Upload test results
-    #   if: always()
-    #   uses: actions/upload-artifact@v2
-    #   with:
-    #     name: test-results-${{ inputs.shard != 'false' && inputs.shard != '' && inputs.shard }}
-    #     path: test-results/
