@@ -47,9 +47,9 @@ npm test -- --project=chromium --grep 'automatisk-dorr/$'
 
 The sitemap is still fetched when using `--grep`. Open the local HTML report with `npx playwright show-report`. A run can fail if the website emits console errors even when the page responds with HTTP 200.
 
-## Run in GitHub Actions
+## Run in this repository
 
-In the repository's GitHub **Settings > Secrets and variables > Actions > Variables**, create a repository variable named `SITEMAP_URLS` containing a JSON array of HTTPS sitemap URLs, for example:
+In [helsingborg-stad/municipio-e2e-action](https://github.com/helsingborg-stad/municipio-e2e-action), open **Settings > Secrets and variables > Actions > Variables** and create a repository variable named `SITEMAP_URLS` containing a JSON array of HTTPS sitemap URLs, for example:
 
 ```json
 ["https://dunkerskulturhus.hbgstage.se/sitemap.xml", "https://example.org/sitemap.xml"]
@@ -61,7 +61,7 @@ The workflow creates a matrix job for each URL in the variable, installs Chromiu
 
 ## Call from another repository
 
-This is a reusable workflow. In the calling repository, add a workflow such as:
+This is a reusable workflow hosted at [helsingborg-stad/municipio-e2e-action](https://github.com/helsingborg-stad/municipio-e2e-action). In the calling repository, add `.github/workflows/sitemap-tests.yml` with:
 
 ```yaml
 name: Sitemap page tests
@@ -70,20 +70,13 @@ on:
 
 jobs:
   sitemap-tests:
-    uses: YOUR_ORG/TESTS_REPO/.github/workflows/sitemap-tests.yml@v1
+    uses: helsingborg-stad/municipio-e2e-action/.github/workflows/sitemap-tests.yml@main
     with:
-      tests_repository: YOUR_ORG/TESTS_REPO
-      tests_ref: v1
+      tests_repository: helsingborg-stad/municipio-e2e-action
+      tests_ref: main
       sitemap_urls: ${{ vars.SITEMAP_URLS }}
 ```
 
-Replace `YOUR_ORG/TESTS_REPO` and `v1` with the repository and ref hosting these tests. Set `SITEMAP_URLS` as a JSON array in the **calling** repository's Actions variables, or supply a JSON array directly as `sitemap_urls`. The `tests_ref` input should match the version in `uses`, so the tests and reusable workflow come from the same revision.
+Set `SITEMAP_URLS` as a JSON array in the **calling** repository's Actions variables, or supply a JSON array directly as `sitemap_urls`. The `tests_ref` input should match the version in `uses`, so the tests and reusable workflow come from the same revision. For reproducible runs, replace both `main` values with the same release tag or commit SHA when one is available.
 
-For a private tests repository, enable reusable workflow access for the calling repository. If the calling repository's `GITHUB_TOKEN` cannot check out the tests repository, pass a token with read access:
-
-```yaml
-    secrets:
-      tests_token: ${{ secrets.TESTS_REPOSITORY_READ_TOKEN }}
-```
-
-Add that `secrets` block to the `sitemap-tests` job in the calling workflow. Reports are uploaded to the calling repository's workflow run.
+The tests repository is public, so callers do not need a separate access token or reusable-workflow access setting. Reports are uploaded to the calling repository's workflow run.
