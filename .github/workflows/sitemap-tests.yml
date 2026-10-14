@@ -5,7 +5,7 @@ on:
   workflow_call:
     inputs:
       sitemap_urls:
-        description: JSON array of sitemap URLs; defaults to the caller's SITEMAP_URLS variable
+        description: JSON array of objects with url and optional shards; defaults to the caller's SITEMAP_URLS variable
         type: string
         required: false
       tests_repository:
@@ -28,13 +28,24 @@ jobs:
   settings:
     runs-on: ubuntu-latest
     outputs:
-      sitemaps: ${{ steps.matrix.outputs.sitemaps }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
       - id: matrix
         env:
           SITEMAP_URLS: ${{ inputs.sitemap_urls || vars.SITEMAP_URLS }}
         run: |
-          node -e 'const sitemaps = JSON.parse(process.env.SITEMAP_URLS || "null"); if (!Array.isArray(sitemaps) || sitemaps.length === 0 || sitemaps.some(url => typeof url !== "string" || !url.startsWith("https://"))) throw new Error("Set SITEMAP_URLS to a nonempty JSON array of HTTPS sitemap URLs"); console.log("sitemaps=" + JSON.stringify(sitemaps))' >> "$GITHUB_OUTPUT"
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const sitemaps = JSON.parse(process.env.SITEMAP_URLS || 'null');
+          if (!Array.isArray(sitemaps) || sitemaps.length === 0 || sitemaps.some(site => !site || typeof site.url !== 'string' || !site.url.startsWith('https://') || !Number.isInteger(site.shards ?? 1) || (site.shards ?? 1) < 1)) {
+            throw new Error('Set SITEMAP_URLS to a nonempty JSON array of objects with HTTPS url and positive integer shards');
+          }
+          const include = sitemaps.flatMap(site => {
+            const total = site.shards ?? 1;
+            return Array.from({ length: total }, (_, index) => ({ sitemap: site.url, shard: index + 1, total }));
+          });
+          if (include.length > 256) throw new Error('The matrix cannot exceed 256 jobs');
+          console.log(`matrix=${JSON.stringify({ include })}`);
+          NODE
 
   test:
     needs: settings
@@ -42,8 +53,7 @@ jobs:
     timeout-minutes: 120
     strategy:
       fail-fast: false
-      matrix:
-        sitemap: ${{ fromJSON(needs.settings.outputs.sitemaps) }}
+      matrix: ${{ fromJSON(needs.settings.outputs.matrix) }}
     env:
       SITEMAP_URL: ${{ matrix.sitemap }}
     steps:
@@ -58,10 +68,38 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm test -- --project=chromium --workers=2
+      - run: npm test -- --project=chromium --workers=2 --shard=${{ matrix.shard }}/${{ matrix.total }} --reporter=blob
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report-${{ strategy.job-index }}
+          name: blob-report-${{ strategy.job-index }}
+          path: blob-report/
+          retention-days: 7
+
+  report:
+    needs: [settings, test]
+    if: ${{ !cancelled() && needs.settings.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.tests_repository || github.repository }}
+          ref: ${{ inputs.tests_ref || github.ref }}
+          token: ${{ secrets.tests_token || github.token }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          path: all-blob-reports/
+          merge-multiple: true
+      - run: npx playwright merge-reports --reporter=html ./all-blob-reports
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
           path: playwright-report/
           retention-days: 7

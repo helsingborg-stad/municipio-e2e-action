@@ -49,15 +49,20 @@ The sitemap is still fetched when using `--grep`. Open the local HTML report wit
 
 ## Run in this repository
 
-In [helsingborg-stad/municipio-e2e-action](https://github.com/helsingborg-stad/municipio-e2e-action), open **Settings > Secrets and variables > Actions > Variables** and create a repository variable named `SITEMAP_URLS` containing a JSON array of HTTPS sitemap URLs, for example:
+In [helsingborg-stad/municipio-e2e-action](https://github.com/helsingborg-stad/municipio-e2e-action), open **Settings > Secrets and variables > Actions > Variables** and create a repository variable named `SITEMAP_URLS` containing a JSON array of sitemap settings, for example:
 
 ```json
-["https://dunkerskulturhus.hbgstage.se/sitemap.xml", "https://example.org/sitemap.xml"]
+[
+  {"url": "https://hbgstage.se/sitemap.xml", "shards": 8},
+  {"url": "https://dunkerskulturhus.hbgstage.se/sitemap.xml"}
+]
 ```
+
+Each entry needs an HTTPS `url`. Set `shards` to a positive integer to split that site across runners; omitted `shards` defaults to one. Each shard runs its share of pages with two Playwright workers; choose shard counts with your GitHub runner limits and the target site's capacity in mind. The combined matrix cannot exceed 256 jobs.
 
 Push the workflow to the repository's default branch. In GitHub, open **Actions > Sitemap page tests > Run workflow** and choose the branch you want to test. The workflow requires `SITEMAP_URLS`; it does not read the local settings file.
 
-The workflow creates a matrix job for each URL in the variable, installs Chromium, and runs the corresponding page tests with two workers. A failure in one sitemap job does not cancel the others. Each job has a two-hour timeout and uploads a `playwright-report-<job index>` artifact, retained for seven days. Download the artifact from the workflow run to inspect the HTML report.
+The workflow creates a matrix job for each shard, installs Chromium, and runs its page tests. A failing shard does not cancel the others. Each shard job has a two-hour timeout and uploads a blob report. Once the shard jobs finish, the report job merges their results, including failures, into the `playwright-report` HTML artifact on the workflow run. Artifacts are retained for seven days.
 
 ## Call from another repository
 
@@ -77,6 +82,6 @@ jobs:
       sitemap_urls: ${{ vars.SITEMAP_URLS }}
 ```
 
-Set `SITEMAP_URLS` as a JSON array in the **calling** repository's Actions variables, or supply a JSON array directly as `sitemap_urls`. The `tests_ref` input should match the version in `uses`, so the tests and reusable workflow come from the same revision. For reproducible runs, replace both `main` values with the same release tag or commit SHA when one is available.
+    Set `SITEMAP_URLS` as a JSON array of sitemap settings in the **calling** repository's Actions variables, or supply the array directly as `sitemap_urls`. The `tests_ref` input should match the version in `uses`, so the tests and reusable workflow come from the same revision. For reproducible runs, replace both `main` values with the same release tag or commit SHA when one is available.
 
 The tests repository is public, so callers do not need a separate access token or reusable-workflow access setting. Reports are uploaded to the calling repository's workflow run.
