@@ -1,0 +1,67 @@
+name: Sitemap page tests
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      sitemap_urls:
+        description: JSON array of sitemap URLs; defaults to the caller's SITEMAP_URLS variable
+        type: string
+        required: false
+      tests_repository:
+        description: Repository containing this workflow and its Playwright tests (owner/repo)
+        type: string
+        required: true
+      tests_ref:
+        description: Ref of the tests repository to check out
+        type: string
+        required: true
+    secrets:
+      tests_token:
+        description: Token with read access to a private tests repository
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  settings:
+    runs-on: ubuntu-latest
+    outputs:
+      sitemaps: ${{ steps.matrix.outputs.sitemaps }}
+    steps:
+      - id: matrix
+        env:
+          SITEMAP_URLS: ${{ inputs.sitemap_urls || vars.SITEMAP_URLS }}
+        run: |
+          node -e 'const sitemaps = JSON.parse(process.env.SITEMAP_URLS || "null"); if (!Array.isArray(sitemaps) || sitemaps.length === 0 || sitemaps.some(url => typeof url !== "string" || !url.startsWith("https://"))) throw new Error("Set SITEMAP_URLS to a nonempty JSON array of HTTPS sitemap URLs"); console.log("sitemaps=" + JSON.stringify(sitemaps))' >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: settings
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        sitemap: ${{ fromJSON(needs.settings.outputs.sitemaps) }}
+    env:
+      SITEMAP_URL: ${{ matrix.sitemap }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.tests_repository || github.repository }}
+          ref: ${{ inputs.tests_ref || github.ref }}
+          token: ${{ secrets.tests_token || github.token }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm test -- --project=chromium --workers=2
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-${{ strategy.job-index }}
+          path: playwright-report/
+          retention-days: 7
